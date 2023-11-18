@@ -58,13 +58,15 @@ final class ModelKitTests: XCTestCase {
 			struct MyModel {
 				@Attribute(.unique) var name: String
 				var number: Int
+				static let text: String = ""
 			}
 			"""#,
 		   expandedSource:
 			#"""
 			struct MyModel {
-				var name: String
+				@Attribute(.unique) var name: String
 				var number: Int
+				static let text: String = ""
 
 				@Model class SwiftDataModel {
 					@Attribute(.unique) var name: String

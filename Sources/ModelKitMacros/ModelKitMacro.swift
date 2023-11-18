@@ -29,7 +29,7 @@ extension SwiftDataModelMacro: MemberMacro {
 								  in context: some MacroExpansionContext) throws -> [DeclSyntax] {
 
 
-		return [
+		[
 			DeclSyntax(
 				swiftDataModelDecl(
 					modifiers: declaration.modifiers,
@@ -37,26 +37,50 @@ extension SwiftDataModelMacro: MemberMacro {
 				)
 			),
 			DeclSyntax(
-				swiftDataModelVarDecl(modifiers: declaration.modifiers, memberBlock: declaration.memberBlock)
+				swiftDataModelVarDecl(
+					modifiers: declaration.modifiers,
+					memberBlock: declaration.memberBlock
+				)
+			)
+		]
+	}
+
+	private static func expansion(of node: AttributeSyntax,
+								  providingMembersOf declaration: ClassDeclSyntax,
+								  in context: some MacroExpansionContext) throws -> [DeclSyntax] {
+		[
+			DeclSyntax(
+				swiftDataModelDecl(
+					modifiers: declaration.modifiers,
+					memberBlock: declaration.memberBlock
+				)
+			),
+			DeclSyntax(
+				swiftDataModelVarDecl(
+					modifiers: declaration.modifiers,
+					memberBlock: declaration.memberBlock
+				)
 			)
 		]
 	}
 
 	private static func swiftDataModelVarDecl(modifiers: DeclModifierListSyntax, memberBlock: MemberBlockSyntax) -> VariableDeclSyntax {
-		VariableDeclSyntax(modifiers: modifiers, bindingSpecifier: .keyword(.var)) {
+		let variableDecls = memberBlock.members
+			.compactMap { $0.decl.as(VariableDeclSyntax.self) }
+			.filter { !$0.modifiers.contains { $0.name.text == "static" } }
+
+		return VariableDeclSyntax(modifiers: modifiers, bindingSpecifier: .keyword(.var)) {
 			PatternBindingSyntax(
 				pattern: IdentifierPatternSyntax(identifier: .identifier("swiftData")),
 				typeAnnotation: TypeAnnotationSyntax(
 					type: IdentifierTypeSyntax(name: .identifier("SwiftDataModel"))
 				),
-				accessorBlock: swiftDataModelVarDeclAccessorBlock(memberBlock: memberBlock)
+				accessorBlock: swiftDataModelVarDeclAccessorBlock(variableDecls: variableDecls)
 			)
 		}
 	}
 
-	private static func swiftDataModelVarDeclAccessorBlock(memberBlock: MemberBlockSyntax) -> AccessorBlockSyntax {
-		let variableDecls = memberBlock.members.compactMap { $0.decl.as(VariableDeclSyntax.self) }
-
+	private static func swiftDataModelVarDeclAccessorBlock(variableDecls: [VariableDeclSyntax]) -> AccessorBlockSyntax {
 		return AccessorBlockSyntax(
 			accessors: .getter(
 				CodeBlockItemListSyntax {
@@ -87,7 +111,9 @@ extension SwiftDataModelMacro: MemberMacro {
 	}
 
 	private static func swiftDataModelDecl(modifiers: DeclModifierListSyntax, memberBlock: MemberBlockSyntax) -> ClassDeclSyntax {
-		let variableDecls = memberBlock.members.compactMap { $0.decl.as(VariableDeclSyntax.self) }
+		let variableDecls = memberBlock.members
+			.compactMap { $0.decl.as(VariableDeclSyntax.self) }
+			.filter { !$0.modifiers.contains { $0.name.text == "static" } }
 
 		let modelAttribute = AttributeSyntax(
 			attributeName: IdentifierTypeSyntax(
@@ -130,13 +156,6 @@ extension SwiftDataModelMacro: MemberMacro {
 				}
 			)
 		)
-	}
-
-	private static func expansion(of node: AttributeSyntax,
-								  providingMembersOf declaration: ClassDeclSyntax,
-								  in context: some MacroExpansionContext) throws -> [DeclSyntax] {
-		print(declaration)
-		return []
 	}
 }
 
